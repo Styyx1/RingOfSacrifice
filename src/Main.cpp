@@ -11,32 +11,52 @@ class RingResurrection : public ResurrectionAPI
 	{
         Utility* util = Utility::GetSingleton();
         Settings* settings = Settings::GetSingleton();
-        if (settings->always_active) {
-            return settings->always_active;
+        RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+        if (a == player) {
+            if (settings->always_active) {
+                return settings->always_active;
+            }
+            return (a->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kRing) == settings->resurrect_ring) && !Utility::ActorHasActiveMagicEffect(a, settings->cd_effect);
         }
-        return (a->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kRing) == settings->resurrect_ring) && !Utility::ActorHasActiveMagicEffect(a, settings->cd_effect);
+        else {            
+                return (a->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kRing) == settings->resurrect_ring) && !Utility::ActorHasActiveMagicEffect(a, settings->cd_effect);
+        }        
 	}
 
 	void resurrect(RE::Actor* a) override
 	{
         Settings* settings = Settings::GetSingleton();
-        auto dataHandler = RE::TESDataHandler::GetSingleton();
-        RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-        if (settings->always_active) {
-            logger::debug("always active exists");            
-            Utility::TeleportPlayer(player);
-            auto gold = RE::BGSDefaultObjectManager::GetSingleton()->GetObject(RE::DEFAULT_OBJECT::kGold);            
-            a->RemoveItem(gold->As<RE::TESBoundObject>(), settings->inn_price->value, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
-            logger::debug("removed {} septims", settings->inn_price->value);
-            return;
+        RE::TESDataHandler* const dataHandler = RE::TESDataHandler::GetSingleton();
+        RE::PlayerCharacter* const player = RE::PlayerCharacter::GetSingleton();
+        RE::TESForm* const gold = RE::BGSDefaultObjectManager::GetSingleton()->GetObject(RE::DEFAULT_OBJECT::kGold); 
+        if (a == player) {
+            if (settings->always_active) {
+                logger::debug("always active exists");            
+                Utility::TeleportPlayer(player);
+                Utility::ApplySpell(a,a,settings->heal_spell);                           
+                a->RemoveItem(gold->As<RE::TESBoundObject>(), settings->inn_price->value, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+                logger::debug("removed {} septims", settings->inn_price->value);
+                return;
+            }
+            else {
+                logger::debug("not always active");
+                Utility::ApplySpell(a,a,settings->heal_spell);
+                Utility::ApplySpell(a,a,settings->cooldown_spell);
+                Utility::TeleportPlayer(player);
+                a->RemoveItem(settings->resurrect_ring, 1, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+                a->RemoveItem(gold->As<RE::TESBoundObject>(), settings->inn_price->value, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+                return;
+            } 
         }
         else {
-            logger::debug("not always active");
+            logger::debug("enemy gets resurrected");
             Utility::ApplySpell(a,a,settings->heal_spell);
             Utility::ApplySpell(a,a,settings->cooldown_spell);
-            Utility::TeleportPlayer(player);
             a->RemoveItem(settings->resurrect_ring, 1, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
-        }        
+            a->AsActorValueOwner()->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, Utility::GetMaxStamina(a));
+            return;
+        }
+               
 	}
 };
 

@@ -3,6 +3,8 @@
 #include <vector>
 #include "Settings.h"
 
+
+
 class Utility : public Singleton<Utility>
 {
 public:    
@@ -45,6 +47,7 @@ public:
         }
     }
 
+
     inline static int RandomInt(int a_max)
     {
         static std::random_device       rd;
@@ -59,6 +62,11 @@ public:
 
         return a_actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kHealth)
                + a_actor->AsActorValueOwner()->GetPermanentActorValue(RE::ActorValue::kHealth);
+    }
+
+    inline static float GetMaxStamina(RE::Actor* actor)
+    {
+        return actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kStamina) + actor->AsActorValueOwner()->GetPermanentActorValue(RE::ActorValue::kStamina);
     }
 
     static bool RestrictedNames(RE::TESObjectCELL* cell) {
@@ -86,6 +94,14 @@ public:
 
     inline static std::vector<RE::TESObjectCELL*> cell_vec;
 
+    inline static void printCell(RE::TESObjectCELL* cell) {
+        if (cell) {
+            logger::debug("selected cell is {}", cell->GetName());
+        }
+        else
+            logger::debug("cell is nullptr");
+        
+    }
 
     inline static void TeleportPlayer(RE::PlayerCharacter* a_actor) {
         auto a_cell = a_actor->GetParentCell();
@@ -111,7 +127,8 @@ public:
                 }
             }
             a_actor->CenterOnCell(a_cell);
-            logger::debug("teleport happened");
+            printCell(a_cell);
+            logger::debug("teleport interior happened");
         }        
         if (auto worldspace = a_actor->GetWorldspace(); worldspace ) {
             if (!worldspace->fullName.contains("Solst")) {
@@ -130,7 +147,8 @@ public:
                     }
                 }
                 a_actor->CenterOnCell(random_val);
-                logger::debug("teleport happened");
+                printCell(random_val);
+                logger::debug("teleport exterior happened");
             }
             else {
                 RE::TESObjectCELL* random_val = settings->SolstheimInn;
@@ -146,7 +164,8 @@ public:
                     }
                 }
                 a_actor->CenterOnCell(random_val);
-                logger::debug("teleport happened");
+                printCell(random_val);
+                logger::debug("teleport solstheim happened");
             }            
         }
     }  

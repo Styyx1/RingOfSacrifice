@@ -1,4 +1,17 @@
 #include "Settings.h"
+using namespace clib_util::ini;
+
+inline static void LogBool(const char* name , bool to_log) {
+    const char* output{};
+    if (to_log) {
+        output = "true";
+    }
+    else
+        output = "false";
+
+    logger::info("bool {} is {} \n",name , output);
+}
+
 
 void Settings::LoadSettings() noexcept
 {
@@ -8,19 +21,23 @@ void Settings::LoadSettings() noexcept
 
     ini.SetUnicode();
     ini.LoadFile(R"(.\Data\SKSE\Plugins\RingOfSacrifice.ini)");
+    const char* section = "General";
 
-    debug_logging = ini.GetBoolValue("Log", "Debug");
-    always_active = ini.GetBoolValue("General", "bAlwaysActive");
+    get_value(ini, debug_logging, "Log", "Debug", ";toggle debugging for the .log file");
+    get_value(ini, always_active, section, "bAlwaysActive", ";No restrictions when to resurrect the player. only the player can have it always active.");
 
+    LogBool("debug_logging", debug_logging);
+    LogBool("always_active", always_active);
+   
     if (debug_logging) {
         spdlog::set_level(spdlog::level::debug);
         logger::debug("Debug logging enabled");
     }
-
+    
     // Load settings
-
+   
     logger::info("Loaded settings");
-    logger::info("");
+    logger::info("------------------------------");
 }
 
 void Settings::LoadForms() noexcept
@@ -49,10 +66,11 @@ void Settings::LoadForms() noexcept
     const int healID = 0x805;
     const int cooldownID = 0x807;
     const int ring = 0x803;
-    const int cdID = 0x806;
-
+    const int cdID = 0x806;  
     const int inn_priceID = 0x9CC98;
+
     auto dh = RE::TESDataHandler::GetSingleton();
+
     inn_price = dh->LookupForm<RE::TESGlobal>(inn_priceID, plugin);
     cooldown_spell = dh->LookupForm<RE::SpellItem>(cooldownID, mod);
     heal_spell = dh->LookupForm<RE::SpellItem>(healID, mod);
@@ -78,4 +96,7 @@ void Settings::LoadForms() noexcept
     Morthal = dh->LookupForm<RE::TESObjectCELL>(id18, plugin);
 
     logger::info("loaded forms");
+    logger::info("---------------------------------------");
 }
+
+

@@ -145,6 +145,7 @@
 #include <REL/Relocation.h>
 #include <REX/W32.h>
 #include <SKSE/SKSE.h>
+#include <CLIBUtil/simpleINI.hpp>
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/msvc_sink.h>
