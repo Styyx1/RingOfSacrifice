@@ -103,6 +103,48 @@ public:
         
     }
 
+    static RE::TESObjectCELL* findRandomCell(RE::TESWorldSpace* world, RE::PlayerCharacter* player) {
+        Settings* settings = Settings::GetSingleton();
+        std::vector<RE::TESObjectCELL*> cell_vec{};
+        cell_vec.clear();
+        for (auto& [ID, cell] : world->cellMap) {
+            if (std::strcmp(cell->GetFormEditorID(), "Wilderness") != 0 && player->GetParentCell() != cell ) {
+                auto distance = player->GetPlayerRuntimeData().exteriorPosition.GetDistance(RE::NiPoint3(cell->GetCoordinates()->worldX, cell->GetCoordinates()->worldY, cell->GetExteriorWaterHeight()));
+                if (distance < settings->maxScanDist) {
+                    if (cell == player->GetPlayerRuntimeData().lastKnownGoodLocation || cell->GetLocation() == player->GetPlayerRuntimeData().lastKnownGoodLocation) {
+                        logger::debug("found known cell, teleport to that");
+                        return cell;
+                    }
+                    cell_vec.push_back(cell);
+                }      
+            }
+        }
+        if (!cell_vec.empty()) {
+            int randomCell = RandomInt(cell_vec.size() - 1);
+            logger::debug("other world vector has {} entries", cell_vec.size());
+            return cell_vec[randomCell];
+        }
+        return nullptr;
+        
+
+    }
+
+    inline static void PacifyEnemies(RE::TESObjectCELL* a_cell) {
+        for (auto& cell : a_cell->GetRuntimeData().references) {
+            if (cell) {
+                if (auto actor = cell.get()->As<RE::Actor>(); actor && actor->IsInCombat()) {
+                    logger::debug("found NPC ref it is: {}", actor->GetName());
+                    const auto process = RE::ProcessLists::GetSingleton();
+                    process->runDetection = false;
+                    process->ClearCachedFactionFightReactions();
+                    process->StopCombatAndAlarmOnActor(actor, false);
+                    process->runDetection = true;
+                    actor->StopCombat();
+                }
+            }
+        }
+    }
+
     inline static void TeleportPlayer(RE::PlayerCharacter* a_actor) {
         auto a_cell = a_actor->GetParentCell();
         Settings* settings = Settings::GetSingleton();
@@ -129,44 +171,38 @@ public:
             a_actor->CenterOnCell(a_cell);
             printCell(a_cell);
             logger::debug("teleport interior happened");
-        }        
-        if (auto worldspace = a_actor->GetWorldspace(); worldspace ) {
-            if (!worldspace->fullName.contains("Solst")) {
-                int randomCell = RandomInt(settings->teleportCells.size());
-                logger::debug("parent vecor has {} entries", settings->teleportCells.size());
-                RE::TESObjectCELL* random_val = settings->teleportCells[randomCell];
-                for (auto& act : GetNearbyActors(a_actor, 1024, false)) {
-                    if (act && act->IsInCombat()) {
-                        logger::debug("found NPC ref it is: {}", act->GetName());
-                        const auto process = RE::ProcessLists::GetSingleton();
-                        process->runDetection = false;
-                        process->ClearCachedFactionFightReactions();
-                        process->StopCombatAndAlarmOnActor(act, false);
-                        process->runDetection = true;
-                        act->StopCombat();
-                    }
-                }
-                a_actor->CenterOnCell(random_val);
-                printCell(random_val);
-                logger::debug("teleport exterior happened");
+        }
+        if (auto worldspace = a_actor->GetWorldspace(); worldspace && worldspace == settings->tamriel_world) {
+            int randomCell = RandomInt(settings->teleportCells.size() - 1);
+            logger::debug("parent vecor has {} entries", settings->teleportCells.size());
+            RE::TESObjectCELL* random_val = settings->teleportCells[randomCell];
+            std::jthread([=] {
+                std::this_thread::sleep_for(0.7s);
+                SKSE::GetTaskInterface()->AddTask([=] {
+                    PacifyEnemies(a_cell);
+                    });
+                }).detach();
+            a_actor->CenterOnCell(random_val);
+            printCell(random_val);
+            logger::debug("teleport exterior happened");                       
+        }
+        else {
+            
+            auto tpcell = findRandomCell(a_actor->GetWorldspace(), a_actor);
+            
+            if (tpcell){
+                logger::debug("found cell, it is {}", tpcell->GetFormEditorID());
+                auto distance = a_actor->GetPlayerRuntimeData().exteriorPosition.GetDistance(RE::NiPoint3(tpcell->GetCoordinates()->worldX, tpcell->GetCoordinates()->worldY, tpcell->GetExteriorWaterHeight()));
+                logger::debug("distance to selected cell is {}", distance);
+                std::jthread([=] {
+                    std::this_thread::sleep_for(0.7s);
+                    SKSE::GetTaskInterface()->AddTask([=] {
+                        PacifyEnemies(a_cell);
+                        });
+                    }).detach();
+                a_actor->CenterOnCell(tpcell);
             }
-            else {
-                RE::TESObjectCELL* random_val = settings->SolstheimInn;
-                for (auto& act : GetNearbyActors(a_actor, 1024, false)) {
-                    if (act && act->IsInCombat()) {
-                        logger::debug("found NPC ref it is: {}", act->GetName());
-                        const auto process = RE::ProcessLists::GetSingleton();
-                        process->runDetection = false;
-                        process->ClearCachedFactionFightReactions();
-                        process->StopCombatAndAlarmOnActor(act, false);
-                        process->runDetection = true;
-                        act->StopCombat();
-                    }
-                }
-                a_actor->CenterOnCell(random_val);
-                printCell(random_val);
-                logger::debug("teleport solstheim happened");
-            }            
+                
         }
     }  
     inline static bool ActorHasActiveMagicEffect(RE::Actor* a_actor, RE::EffectSetting* a_effect)
@@ -210,14 +246,14 @@ public:
         }
     }
 
-    inline static void UtilWait(std::chrono::seconds wait_time, RE::PlayerCharacter* player,std::function<void(RE::PlayerCharacter*)> func)
-    {
-        std::jthread([=] {
-            std::this_thread::sleep_for(wait_time);
-            SKSE::GetTaskInterface()->AddTask([=] {
-                func(player);
-                });
-            }).detach();
-    }
+    //inline static void UtilWait(std::chrono::seconds wait_time, RE::PlayerCharacter* player,std::function<void(RE::PlayerCharacter*)> func)
+    //{
+    //    std::jthread([=] {
+    //        std::this_thread::sleep_for(wait_time);
+    //        SKSE::GetTaskInterface()->AddTask([=] {
+    //            PacifyEnemies(a_cell)
+    //            });
+    //    }).detach();
+    //}
 
 };

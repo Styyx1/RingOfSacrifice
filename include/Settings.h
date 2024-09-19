@@ -8,6 +8,7 @@ public:
 
     inline static bool debug_logging{};
     inline static bool always_active{};
+    inline static float maxScanDist{};
 
     inline static RE::TESObjectCELL* KynesgroveInn;
     inline static RE::TESObjectCELL* WindhelmInn;
@@ -33,7 +34,7 @@ public:
     inline static RE::SpellItem* heal_spell;
     inline static RE::TESObjectARMO* resurrect_ring;
     inline static RE::EffectSetting* cd_effect;
-
+    inline static RE::TESWorldSpace* tamriel_world;
 
 
     const std::vector<RE::TESObjectCELL*> teleportCells{

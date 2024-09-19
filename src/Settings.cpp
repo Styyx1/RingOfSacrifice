@@ -25,6 +25,7 @@ void Settings::LoadSettings() noexcept
 
     get_value(ini, debug_logging, "Log", "Debug", ";toggle debugging for the .log file");
     get_value(ini, always_active, section, "bAlwaysActive", ";No restrictions when to resurrect the player. only the player can have it always active.");
+    get_value(ini, maxScanDist, section, "fMaxTeleportDistanceOtherWorlds", ";Maximum Distance you will be teleported away. default 30000");
 
     LogBool("debug_logging", debug_logging);
     LogBool("always_active", always_active);
@@ -71,6 +72,7 @@ void Settings::LoadForms() noexcept
 
     auto dh = RE::TESDataHandler::GetSingleton();
 
+    tamriel_world = dh->LookupForm<RE::TESWorldSpace>(0x3C, plugin);
     inn_price = dh->LookupForm<RE::TESGlobal>(inn_priceID, plugin);
     cooldown_spell = dh->LookupForm<RE::SpellItem>(cooldownID, mod);
     heal_spell = dh->LookupForm<RE::SpellItem>(healID, mod);
