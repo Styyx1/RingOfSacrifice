@@ -12,14 +12,15 @@ class RingResurrection : public ResurrectionAPI
         Utility* util = Utility::GetSingleton();
         Settings* settings = Settings::GetSingleton();
         RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+
         if (a == player) {
             if (settings->always_active) {
                 return settings->always_active;
             }
             return (a->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kRing) == settings->resurrect_ring) && !Utility::ActorHasActiveMagicEffect(a, settings->cd_effect);
         }
-        else {            
-                return (a->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kRing) == settings->resurrect_ring) && !Utility::ActorHasActiveMagicEffect(a, settings->cd_effect);
+        else {
+            return (a->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kRing) == settings->resurrect_ring) && !Utility::ActorHasActiveMagicEffect(a, settings->cd_effect);
         }        
 	}
 
@@ -28,7 +29,7 @@ class RingResurrection : public ResurrectionAPI
         Settings* settings = Settings::GetSingleton();
         RE::TESDataHandler* const dataHandler = RE::TESDataHandler::GetSingleton();
         RE::PlayerCharacter* const player = RE::PlayerCharacter::GetSingleton();
-        RE::TESForm* const gold = RE::BGSDefaultObjectManager::GetSingleton()->GetObject(RE::DEFAULT_OBJECT::kGold); 
+        RE::TESForm* const gold = RE::BGSDefaultObjectManager::GetSingleton()->GetObject(RE::DEFAULT_OBJECT::kGold);
         if (a == player) {
             if (settings->always_active) {
                 logger::debug("always active exists");            
@@ -62,7 +63,7 @@ class RingResurrection : public ResurrectionAPI
 
 void addSubscriber()
 {
-	if (auto pluginHandle = GetModuleHandleA("ResurrectionAPI.dll")) {
+	if (auto pluginHandle = REX::W32::GetModuleHandleA("ResurrectionAPI.dll")) {
 		if (auto AddSubscriber = (AddSubscriber_t)GetProcAddress(pluginHandle, "ResurrectionAPI_AddSubscriber")) {
 			AddSubscriber(std::make_unique<RingResurrection>());
 		}

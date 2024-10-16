@@ -171,6 +171,7 @@ public:
             a_actor->CenterOnCell(a_cell);
             printCell(a_cell);
             logger::debug("teleport interior happened");
+            return;
         }
         if (auto worldspace = a_actor->GetWorldspace(); worldspace && worldspace == settings->tamriel_world) {
             int randomCell = RandomInt(settings->teleportCells.size() - 1);
@@ -184,13 +185,13 @@ public:
                 }).detach();
             a_actor->CenterOnCell(random_val);
             printCell(random_val);
-            logger::debug("teleport exterior happened");                       
+            logger::debug("teleport exterior happened");
+            return;
         }
-        else {
-            
-            auto tpcell = findRandomCell(a_actor->GetWorldspace(), a_actor);
-            
+        else {            
+            auto tpcell = findRandomCell(a_actor->GetWorldspace(), a_actor);            
             if (tpcell){
+                
                 logger::debug("found cell, it is {}", tpcell->GetFormEditorID());
                 auto distance = a_actor->GetPlayerRuntimeData().exteriorPosition.GetDistance(RE::NiPoint3(tpcell->GetCoordinates()->worldX, tpcell->GetCoordinates()->worldY, tpcell->GetExteriorWaterHeight()));
                 logger::debug("distance to selected cell is {}", distance);
@@ -202,7 +203,7 @@ public:
                     }).detach();
                 a_actor->CenterOnCell(tpcell);
             }
-                
+            return;                
         }
     }  
     inline static bool ActorHasActiveMagicEffect(RE::Actor* a_actor, RE::EffectSetting* a_effect)
@@ -245,15 +246,5 @@ public:
             caster->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant)->CastSpellImmediate(spell, false, target, 1.0F, false, 0.0F, nullptr);
         }
     }
-
-    //inline static void UtilWait(std::chrono::seconds wait_time, RE::PlayerCharacter* player,std::function<void(RE::PlayerCharacter*)> func)
-    //{
-    //    std::jthread([=] {
-    //        std::this_thread::sleep_for(wait_time);
-    //        SKSE::GetTaskInterface()->AddTask([=] {
-    //            PacifyEnemies(a_cell)
-    //            });
-    //    }).detach();
-    //}
 
 };
